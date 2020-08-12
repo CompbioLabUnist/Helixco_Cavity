@@ -1,11 +1,13 @@
 # Variables
 DATE := $(shell date "+%y%m%d")
 RANDOM = $(shell bash -c 'echo $$RANDOM')
-IMAGE_NAME = cavity
+IMAGE_NAME = cavity:$(DATE)
 CPUS = 15
 MEMS = 45G
 PWD := $(shell pwd)
 TOOLS = 
+DOCKER = docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) $(IMAGE_NAME)
+PYTHON_PREFIX = /Python
 
 # Options
 VOLUME_OPTS = --volume $(abspath Output):/Output --volume $(abspath Data):/Data
@@ -26,8 +28,6 @@ TOOLS += Docker/Tools/Mothur.zip
 TOOLS += $(wildcard Docker/Python/*)
 
 # Docker
-DOCKER = docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) $(IMAGE_NAME)
-
 build.log: Docker/Dockerfile $(TOOLS) | log Output
 	rm -fv $@
 	docker images | grep $(IMAGE_NAME) && docker rmi $(IMAGE_NAME) || true
@@ -61,20 +61,20 @@ latest: qiime
 .PHONY += latest
 
 # qiime
-Output/whole.manifest.tsv: $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | build.log
-	$(DOCKER) python3 /Tools/make_manifest.py $(addprefix /,$^) > $@
+Output/whole.manifest.tsv: Docker/Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | build.log
+	$(DOCKER) python3 $(PYTHON_PREFIX)/$(notdir $<) $(addprefix /,$(filter %.fastq.gz,$^)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@)
 
 Output/%.qza: Output/%.manifest.tsv | build.log
 	$(DOCKER) qiime tools import --type SampleData[PairedEndSequencesWithQuality] --input-format PairedEndFastqManifestPhred33V2 --input-path $(addprefix /,$<) --output-path $(addprefix /,$@)
 
-Output/%.qzv: Output/%.qza | build.log
+Output/%.demux.qzv: Output/%.qza | build.log
 	$(DOCKER) qiime demux summarize --i-data $(addprefix /,$<) --o-visualization $(addprefix /,$@)
 
-Output/%/data/forward-seven-number-summaries.tsv Output/%/data/reverse-seven-number-summaries.tsv : Output/%.qzv
+Output/%.demux/data/forward-seven-number-summaries.tsv Output/%.demux/data/reverse-seven-number-summaries.tsv: Output/%.demux.qzv
 	unzip $< -d $(basename $<)
 	mv $(basename $<)/*/* $(basename $<)
 	touch $(dir $@)/*
 
-qiime: Output/whole/data/forward-seven-number-summaries.tsv
+qiime: Output/whole.demux.qzv
 .PHONY += qiime
