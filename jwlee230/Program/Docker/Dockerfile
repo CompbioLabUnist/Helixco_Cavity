@@ -7,6 +7,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y make gcc g++ zlib
 
 RUN mkdir /Tools
 ADD Python /Tools
+RUN pip install --requirement /Tools/requirements.txt
 
 # Mothur
 ADD Tools/Mothur.zip /Tools

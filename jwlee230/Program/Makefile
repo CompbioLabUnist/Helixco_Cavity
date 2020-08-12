@@ -71,5 +71,10 @@ Output/%.qza: Output/%.manifest.tsv | build.log
 Output/%.qzv: Output/%.qza | build.log
 	$(DOCKER) qiime demux summarize --i-data $(addprefix /,$<) --o-visualization $(addprefix /,$@)
 
-qiime: Output/whole.qzv
+Output/%/data/forward-seven-number-summaries.tsv Output/%/data/reverse-seven-number-summaries.tsv : Output/%.qzv
+	unzip $< -d $(basename $<)
+	mv $(basename $<)/*/* $(basename $<)
+	touch $(dir $@)/*
+
+qiime: Output/whole/data/forward-seven-number-summaries.tsv
 .PHONY += qiime
