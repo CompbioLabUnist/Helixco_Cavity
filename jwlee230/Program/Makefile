@@ -1,7 +1,7 @@
 # Variables
 DATE := $(shell date "+%y%m%d")
 RANDOM = $(shell bash -c 'echo $$RANDOM')
-IMAGE_NAME = cavity:$(DATE)
+IMAGE_NAME = cavity:latest
 CPUS = 15
 MEMS = 45G
 PWD := $(shell pwd)
@@ -25,9 +25,12 @@ Docker/Tools/Mothur.zip: | Docker/Tools
 	wget "https://github.com/mothur/mothur/releases/download/v1.44.2/Mothur.Ubuntu_18.zip" -O $@
 TOOLS += Docker/Tools/Mothur.zip
 
-TOOLS += $(wildcard Docker/Python/*)
-
+Docker/Tools/FastQC.zip: | Docker/Tools
+	wget "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip" -O $@
+TOOLS += Docker/Tools/FastQC.zip
+#
 # Docker
+TOOLS += $(wildcard Docker/Python/*)
 build.log: Docker/Dockerfile $(TOOLS) | log Output
 	rm -fv $@
 	docker images | grep $(IMAGE_NAME) && docker rmi $(IMAGE_NAME) || true
@@ -57,10 +60,12 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: qiime
+latest: step02
 .PHONY += latest
 
-# qiime
+# Step 01 (FastQC for given FASTQ.gz)
+
+# Step 02 (Make basic QZA/QZV file)
 Output/whole.manifest.tsv: Docker/Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | build.log
 	$(DOCKER) python3 $(PYTHON_PREFIX)/$(notdir $<) $(addprefix /,$(filter %.fastq.gz,$^)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@)
@@ -71,10 +76,11 @@ Output/%.qza: Output/%.manifest.tsv | build.log
 Output/%.demux.qzv: Output/%.qza | build.log
 	$(DOCKER) qiime demux summarize --i-data $(addprefix /,$<) --o-visualization $(addprefix /,$@)
 
+step02: Output/whole.demux.qzv
+.PHONY += step02
+
 Output/%.demux/data/forward-seven-number-summaries.tsv Output/%.demux/data/reverse-seven-number-summaries.tsv: Output/%.demux.qzv
 	unzip $< -d $(basename $<)
 	mv $(basename $<)/*/* $(basename $<)
 	touch $(dir $@)/*
 
-qiime: Output/whole.demux.qzv
-.PHONY += qiime

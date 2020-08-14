@@ -14,4 +14,9 @@ ADD Tools/Mothur.zip /Tools
 RUN cd /Tools && unzip Mothur.zip
 ENV PATH="/Tools/mothur:$PATH"
 
+# FastQC
+ADD Tools/FastQC.zip /Tools
+RUN cd /Tools && unzip FastQC.zip && cd FastQC && chmod +x fastqc
+ENV PATH=/Tools/FastQC:$PATH
+
 CMD ["/bin/bash"]
