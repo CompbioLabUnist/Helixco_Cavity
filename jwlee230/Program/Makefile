@@ -74,35 +74,38 @@ step01: $(addprefix Output/FastQC/,$(addsuffix _fastqc.zip,$(sort $(shell ls -1 
 .PHONY += step01
 
 # Step 02 (Make manifest files)
-Output/test.manifest.tsv: Docker/Python/make_manifest.py Data/1811AHP-0075/C1P-001_1.fastq.gz Data/1811AHP-0075/C1P-001_2.fastq.gz | build.log
+Output/manifest:
+	mkdir -p $@
+
+Output/manifest/test.manifest.tsv: Docker/Python/make_manifest.py Data/1811AHP-0075/C1P-001_1.fastq.gz Data/1811AHP-0075/C1P-001_2.fastq.gz | Output/manifest build.log
 	$(DOCKER) python3 $(PYTHON_PREFIX)/$(notdir $<) $(addprefix /,$(filter %.fastq.gz,$^)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/whole.manifest.tsv: Docker/Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | build.log
+Output/manifest/whole.manifest.tsv: Docker/Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(PYTHON_PREFIX)/$(notdir $<) $(addprefix /,$(filter %.fastq.gz,$^)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-step02: Output/whole.manifest.tsv
+step02: Output/manifest/whole.manifest.tsv
 .PHONY += step02
 
 # Step 03 (Make basic QZA/QZV file)
 Output/demux:
 	mkdir -p $@
 
-Output/demux/%.demux.qza: Output/%.manifest.tsv | Output/demux build.log
+Output/demux/%.qza: Output/manifest/%.manifest.tsv | Output/demux build.log
 	$(DOCKER) qiime tools import --type SampleData[PairedEndSequencesWithQuality] --input-format PairedEndFastqManifestPhred33V2 --input-path $(addprefix /,$<) --output-path $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/demux/%.demux.qzv: Output/demux/%.demux.qza | Output/demux build.log
+Output/demux/%.qzv: Output/demux/%.demux.qza | Output/demux build.log
 	$(DOCKER) qiime demux summarize --i-data $(addprefix /,$<) --o-visualization $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-step03: Output/demux/whole.demux.qzv
+step03: Output/demux/whole.qzv
 .PHONY += step03
 
 # Step 04 (Quality filter)
 Output/filter:
 	mkdir -p $@
 
-Output/filter/%.seq.qza Output/filter/%.stat.qza: Output/demux/%.demux.qza | Output/filter build.log
+Output/filter/%.seq.qza Output/filter/%.stat.qza: Output/demux/%.qza | Output/filter build.log
 	$(DOCKER) qiime quality-filter q-score --i-demux $(addprefix /,$<) --o-filtered-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-filter-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
 
 step04: Output/filter/whole.seq.qza
@@ -112,8 +115,21 @@ step04: Output/filter/whole.seq.qza
 Output/DADA2:
 	mkdir -p $@
 
-Output/DADA2/%.table.qza Output/DADA2/%.seq.qza Output/DADA2/%.stat.qza: Output/filter/%.seq.qza | Output/DADA2 build.log
-	$(DOCKER) qiime dada2 denoise-paired --i-demultiplexed-seqs $(addprefix /,$<) --p-n-threads $(CPUS) --p-trunc-len-f 240 --p-trunc-len-r 240 --o-table $(addprefix /,$(basename $(basename $@))).table.qza --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-denosing-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
+Output/DADA2/%.table.qza Output/DADA2/%.seq.qza Output/DADA2/%.stat.qza: Output/demux/%.qza | Output/DADA2 build.log
+	$(DOCKER) qiime dada2 denoise-paired --i-demultiplexed-seqs $(addprefix /,$<) --p-n-threads $(CPUS) --p-trunc-len-f 240 --p-trunc-len-r 240 --o-table $(addprefix /,$(basename $(basename $@))).table.qza --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-denoising-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
 
-test: Output/DADA2/whole.seq.qza
+step05: Output/DADA2/whole.seq.qza
+.PHONY += step05
+
+# Step 06 (Deblur denoising)
+Output/Deblur:
+	mkdir -p $@
+
+Output/Deblur/%.table.qza Output/Deblur/%.seq.qza Output/Deblur/%.stat.qza: Output/filter/%.seq.qza | Output/Deblur build.log
+	$(DOCKER) qiime deblur denoise-16S --i-demultiplexed-seqs $(addprefix /,$<) ----p-trim-length 240 --p-jobs-to-start $(CPUS) --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-denoising-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
+
+step06: Output/Deblur/test.seq.qza
+.PHONY += step06
+
+test: Output/Deblur/test.seq.qza
 .PHONY += test
