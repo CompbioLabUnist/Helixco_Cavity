@@ -60,7 +60,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step04
+latest: step06
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -126,7 +126,7 @@ Output/Deblur:
 	mkdir -p $@
 
 Output/Deblur/%.table.qza Output/Deblur/%.seq.qza Output/Deblur/%.stat.qza: Output/filter/%.seq.qza | Output/Deblur build.log
-	$(DOCKER) qiime deblur denoise-16S --i-demultiplexed-seqs $(addprefix /,$<) ----p-trim-length 240 --p-jobs-to-start $(CPUS) --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-denoising-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
+	$(DOCKER) qiime deblur denoise-16S --i-demultiplexed-seqs $(addprefix /,$<) --p-trim-length 240 --p-jobs-to-start $(CPUS) --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
 
 step06: Output/Deblur/test.seq.qza
 .PHONY += step06
