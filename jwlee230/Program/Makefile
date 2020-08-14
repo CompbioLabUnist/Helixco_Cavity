@@ -60,10 +60,18 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step02
+latest: step01
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
+Output/FastQC:
+	mkdir -p $@
+
+Output/FastQC/%_fastqc.zip Output/FastQC/%_fastqc.html: Data/1811AHP-0075/%_1.fastq.gz Data/1811AHP-0075/%_2.fastq.gz | Output/FastQC build.log
+	$(DOCKER) fastqc --outdir $(addprefix /,$(@D)) --noextract --format fastq --threads $(CPUS) $(addprefix /,$^)
+
+step01: $(addprefix Output/FastQC/,$(addsuffix _fastqc.zip,$(sort $(shell ls -1 Data/1811AHP-0075 | cut --fields 1 --delimiter _))))
+.PHONY += step01
 
 # Step 02 (Make basic QZA/QZV file)
 Output/whole.manifest.tsv: Docker/Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | build.log
@@ -83,4 +91,3 @@ Output/%.demux/data/forward-seven-number-summaries.tsv Output/%.demux/data/rever
 	unzip $< -d $(basename $<)
 	mv $(basename $<)/*/* $(basename $<)
 	touch $(dir $@)/*
-
