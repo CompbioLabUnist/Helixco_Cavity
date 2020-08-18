@@ -30,7 +30,7 @@ Docker/Tools/FastQC.zip: | Docker/Tools
 TOOLS += Docker/Tools/FastQC.zip
 #
 # Docker
-TOOLS += $(wildcard Docker/Python/*)
+TOOLS += $(wildcard Docker/*)
 build.log: Docker/Dockerfile $(TOOLS) | log Output
 	rm -fv $@
 	docker images | grep $(IMAGE_NAME) && docker rmi $(IMAGE_NAME) || true
@@ -67,10 +67,13 @@ latest: step05 step06
 Output/FastQC:
 	mkdir -p $@
 
-Output/FastQC/%_fastqc.zip Output/FastQC/%_fastqc.html: Data/1811AHP-0075/%_1.fastq.gz Data/1811AHP-0075/%_2.fastq.gz | Output/FastQC build.log
+Output/FastQC/%_fastqc.zip: Data/1811AHP-0075/%.fastq.gz Data/1811AHP-0075/%.fastq.gz | Output/FastQC build.log
 	$(DOCKER) fastqc --outdir $(addprefix /,$(@D)) --noextract --format fastq --threads $(CPUS) $(addprefix /,$^) 1> $@.stdout 2> $@.stderr
 
-step01: $(addprefix Output/FastQC/,$(addsuffix _fastqc.zip,$(sort $(shell ls -1 Data/1811AHP-0075 | cut --fields 1 --delimiter _))))
+Output/FastQC/summary.tsv Output/FastQC/summary.tex: Python/aggregate_fastqc.py $(addprefix Output/FastQC/,$(addsuffix _1_fastqc.zip,$(sort $(shell ls -1 Data/1811AHP-0075 | cut --fields 1 --delimiter _)))) $(addprefix Output/FastQC/,$(addsuffix _2_fastqc.zip,$(sort $(shell ls -1 Data/1811AHP-0075 | cut --fields 1 --delimiter _)))) | build.log
+	$(DOCKER) python3 $(addprefix /,$^)
+
+step01: Output/FastQC/summary.tsv
 .PHONY += step01
 
 # Step 02 (Make manifest files)
