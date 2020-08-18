@@ -7,7 +7,6 @@ MEMS = 45G
 PWD := $(shell pwd)
 TOOLS = 
 DOCKER = docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) $(IMAGE_NAME)
-PYTHON_PREFIX = /Python
 
 # Options
 VOLUME_OPTS = --volume $(abspath Output):/Output --volume $(abspath Data):/Data --volume $(abspath Python):/Python
@@ -60,7 +59,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step05 step06
+latest: step06
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -80,12 +79,12 @@ step01: Output/FastQC/summary.tsv
 Output/manifest:
 	mkdir -p $@
 
-Output/manifest/test.manifest.tsv: Docker/Python/make_manifest.py Data/1811AHP-0075/C1P-001_1.fastq.gz Data/1811AHP-0075/C1P-001_2.fastq.gz | Output/manifest build.log
-	$(DOCKER) python3 $(PYTHON_PREFIX)/$(notdir $<) $(addprefix /,$(filter %.fastq.gz,$^)) > $@
+Output/manifest/test.manifest.tsv: Python/make_manifest.py Data/1811AHP-0075/C1P-001_1.fastq.gz Data/1811AHP-0075/C1P-001_2.fastq.gz | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/manifest/whole.manifest.tsv: Docker/Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | Output/manifest build.log
-	$(DOCKER) python3 $(PYTHON_PREFIX)/$(notdir $<) $(addprefix /,$(filter %.fastq.gz,$^)) > $@
+Output/manifest/whole.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 step02: Output/manifest/whole.manifest.tsv
