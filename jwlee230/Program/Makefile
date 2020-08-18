@@ -10,7 +10,7 @@ DOCKER = docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) $(IMAGE_NAME)
 PYTHON_PREFIX = /Python
 
 # Options
-VOLUME_OPTS = --volume $(abspath Output):/Output --volume $(abspath Data):/Data
+VOLUME_OPTS = --volume $(abspath Output):/Output --volume $(abspath Data):/Data --volume $(abspath Python):/Python
 RUN_OPTS = --tty --cpus="$(CPUS)" --memory="$(MEMS)"
 
 # General
@@ -60,7 +60,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step06
+latest: step05 step06
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -128,7 +128,7 @@ Output/Deblur:
 Output/Deblur/%.table.qza Output/Deblur/%.seq.qza Output/Deblur/%.stat.qza: Output/filter/%.seq.qza | Output/Deblur build.log
 	$(DOCKER) qiime deblur denoise-16S --i-demultiplexed-seqs $(addprefix /,$<) --p-trim-length 240 --p-jobs-to-start $(CPUS) --o-table $(addprefix /,$(basename $(basename $@))).table.qza --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
 
-step06: Output/Deblur/test.seq.qza
+step06: Output/Deblur/whole.seq.qza
 .PHONY += step06
 
 test: Output/Deblur/test.seq.qza
