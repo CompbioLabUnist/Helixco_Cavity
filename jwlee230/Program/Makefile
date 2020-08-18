@@ -87,7 +87,31 @@ Output/manifest/whole.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811
 	$(DOCKER) python3 $(addprefix /,$^) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-step02: Output/manifest/whole.manifest.tsv
+Output/manifest/Normal.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/N*_1.fastq.gz Data/1811AHP-0075/N*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/manifest/NormalSaliva.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/N*S*_1.fastq.gz Data/1811AHP-0075/N*S*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/manifest/NormalPlaque.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/N*P*_1.fastq.gz Data/1811AHP-0075/N*P*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/manifest/Cavity.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/C*_1.fastq.gz Data/1811AHP-0075/C*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/manifest/CavitySaliva.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/C*S*_1.fastq.gz Data/1811AHP-0075/C*S*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/manifest/CavityPlaque.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/C*P*_1.fastq.gz Data/1811AHP-0075/C*P*_2.fastq.gz) | Output/manifest build.log
+	$(DOCKER) python3 $(addprefix /,$^) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+step02: Output/manifest/whole.manifest.tsv Output/manifest/Normal.manifest.tsv Output/manifest/NormalSaliva.manifest.tsv Output/manifest/NormalPlaque.manifest.tsv Output/manifest/Cavity.manifest.tsv Output/manifest/CavitySaliva.manifest.tsv Output/manifest/CavityPlaque.manifest.tsv
 .PHONY += step02
 
 # Step 03 (Make basic QZA/QZV file)
@@ -95,7 +119,7 @@ Output/demux:
 	mkdir -p $@
 
 Output/demux/%.qza: Output/manifest/%.manifest.tsv | Output/demux build.log
-	$(DOCKER) qiime tools import --type SampleData[PairedEndSequencesWithQuality] --input-format PairedEndFastqManifestPhred33V2 --input-path $(addprefix /,$<) --output-path $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+	$(DOCKER) qiime tools import --type "SampleData[PairedEndSequencesWithQuality]" --input-format "PairedEndFastqManifestPhred33V2" --input-path $(addprefix /,$<) --output-path $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/demux/%.qzv: Output/demux/%.demux.qza | Output/demux build.log
 	$(DOCKER) qiime demux summarize --i-data $(addprefix /,$<) --o-visualization $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
