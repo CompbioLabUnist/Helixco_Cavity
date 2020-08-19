@@ -1,6 +1,6 @@
 # Variables
 DATE := $(shell date "+%y%m%d")
-RANDOM = $(shell bash -c 'echo $$RANDOM')
+RANDOM := $(shell bash -c 'echo $$RANDOM')
 IMAGE_NAME = cavity:latest
 CPUS = 15
 MEMS = 45G
@@ -59,7 +59,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step08
+latest: step10
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -146,7 +146,7 @@ Output/Deblur:
 Output/Deblur/%.table.qza Output/Deblur/%.seq.qza Output/Deblur/%.stat.qza: Output/filter/%.seq.qza | Output/Deblur build.log
 	$(DOCKER) qiime deblur denoise-16S --i-demultiplexed-seqs $(addprefix /,$<) --p-trim-length 240 --p-jobs-to-start $(CPUS) --o-table $(addprefix /,$(basename $(basename $@))).table.qza --o-representative-sequences $(addprefix /,$(basename $(basename $@))).seq.qza --o-stats $(addprefix /,$(basename $(basename $@))).stat.qza 1> $@.stdout 2> $@.stderr
 
-step06: Output/Deblur/test.seq.qza Output/Deblur/whole.seq.qza
+step06: Output/Deblur/test.table.qza Output/Deblur/whole.table.qza
 .PHONY += step06
 
 # Step 07 (Build metadata)
@@ -197,3 +197,32 @@ Output/FeatureTable/%.Deblur.qzv: Output/Deblur/%.table.qza Output/metadata/%.ts
 
 step08: Output/FeatureTable/test.Deblur.qzv Output/FeatureTable/whole.Deblur.qzv Output/FeatureTable/Normal.Deblur.qzv Output/FeatureTable/Cavity.Deblur.qzv Output/FeatureTable/NormalSaliva.Deblur.qzv Output/FeatureTable/NormalCavity.Deblur.qzv Output/FeatureTable/CavitySaliva.Deblur.qzv Output/FeatureTable/CavityPlaque.qzv
 .PHONY += step08
+
+# Step 09 (Phylogenetic tree with fasttree)
+Output/Phylogenetic/fasttree:
+	mkdir -p $@
+
+Output/Phylogenetic/fasttree/%.Deblur.alignment.qza Output/Phylogenetic/fasttree/%.Deblur.masked_alignment.qza Output/Phylogenetic/fasttree/%.Deblur.tree.qza Output/Phylogenetic/fasttree/%.Deblur.rooted_tree.qza: Output/Deblur/%.seq.qza | Output/Phylogenetic/fasttree build.log
+	$(DOCKER) qiime phylogeny align-to-tree-mafft-fasttree --p-n-threads $(CPUS) --i-sequences $(addprefix /,$<) --o-alignment $(addprefix /,$(basename $(basename $@))).alignment.qza --o-masked-alignment $(addprefix /,$(basename $(basename $@))).masked_alignment.qza --o-tree $(addprefix /,$(basename $(basename $@))).tree.qza --o-rooted-tree $(addprefix /,$(basename $(basename $@))).rooted_tree.qza 1> $@.stdout 2> $@.stderr
+
+step09: Output/Phylogenetic/fasttree/whole.Deblur.rooted_tree.qza
+.PHONY += step09
+
+#Step 10 (Get TSV for machine-learning)
+Output/Taxonomy:
+	mkdir -p $@
+
+Output/Taxonomy/silva.qza: | Output/Taxonomy build.log
+	wget "https://data.qiime2.org/2020.6/common/silva-138-99-nb-classifier.qza" -O $@
+
+Output/Taxonomy/gg.qza: | Output/Taxonomy build.log
+	wget "https://data.qiime2.org/2020.6/common/gg-13-8-99-nb-classifier.qza" -O $@
+
+Output/Taxonomy/%.silva.qza: Output/Taxonomy/silva.qza Output/Deblur/%.seq.qza | build.log
+	$(DOCKER) qiime feature-classifier classify-sklearn --i-classifier $(addprefix /,$(word 1,$^)) --i-reads $(addprefix /,$(word 2,$^)) --p-n-jobs $(CPUS) --o-classification $(addprefix /,$@)
+
+Output/Taxonomy/%.gg.qza: Output/Taxonomy/gg.qza Output/Deblur/%.seq.qza | build.log
+	$(DOCKER) qiime feature-classifier classify-sklearn --i-classifier $(addprefix /,$(word 1,$^)) --i-reads $(addprefix /,$(word 2,$^)) --p-n-jobs $(CPUS) --o-classification $(addprefix /,$@)
+
+step10: Output/Taxonomy/whole.silva.qza Output/Taxonomy/whole.gg.qza
+.PHONY += step10
