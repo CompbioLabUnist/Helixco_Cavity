@@ -81,37 +81,29 @@ Output/manifest:
 
 Output/manifest/test.manifest.tsv: Python/make_manifest.py Data/1811AHP-0075/C1P-001_1.fastq.gz Data/1811AHP-0075/C1P-001_2.fastq.gz | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/whole.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/*_1.fastq.gz Data/1811AHP-0075/*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/Normal.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/N*_1.fastq.gz Data/1811AHP-0075/N*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/NormalSaliva.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/N*S*_1.fastq.gz Data/1811AHP-0075/N*S*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/NormalPlaque.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/N*P*_1.fastq.gz Data/1811AHP-0075/N*P*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/Cavity.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/C*_1.fastq.gz Data/1811AHP-0075/C*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/CavitySaliva.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/C*S*_1.fastq.gz Data/1811AHP-0075/C*S*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 Output/manifest/CavityPlaque.manifest.tsv: Python/make_manifest.py $(wildcard Data/1811AHP-0075/C*P*_1.fastq.gz Data/1811AHP-0075/C*P*_2.fastq.gz) | Output/manifest build.log
 	$(DOCKER) python3 $(addprefix /,$^) > $@
-	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-step02: Output/manifest/whole.manifest.tsv Output/manifest/Normal.manifest.tsv Output/manifest/NormalSaliva.manifest.tsv Output/manifest/NormalPlaque.manifest.tsv Output/manifest/Cavity.manifest.tsv Output/manifest/CavitySaliva.manifest.tsv Output/manifest/CavityPlaque.manifest.tsv
+step02: Output/manifest/test.manifest.tsv Output/manifest/whole.manifest.tsv Output/manifest/Normal.manifest.tsv Output/manifest/NormalSaliva.manifest.tsv Output/manifest/NormalPlaque.manifest.tsv Output/manifest/Cavity.manifest.tsv Output/manifest/CavitySaliva.manifest.tsv Output/manifest/CavityPlaque.manifest.tsv
 .PHONY += step02
 
 # Step 03 (Make basic QZA/QZV file)
@@ -156,3 +148,42 @@ Output/Deblur/%.table.qza Output/Deblur/%.seq.qza Output/Deblur/%.stat.qza: Outp
 
 step06: Output/Deblur/test.seq.qza Output/Deblur/whole.seq.qza
 .PHONY += step06
+
+# Step 07 (Build metadata)
+Output/metadata:
+	mkdir -p $@
+
+Output/metadata/test.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) "C1P-001" > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/whole.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/Normal.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/N* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/Cavity.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/C* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/NormalSaliva.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/N*S* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/NormalPlaque.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/N*P* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/CavitySaliva.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/C*S* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/metadata/CavityPlaque.tsv: Python/make_metadata.py | Output/metadata
+	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/C*P* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
+	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+step07: Output/metadata/test.tsv Output/metadata/whole.tsv Output/metadata/Normal.tsv Output/metadata/Cavity.tsv Output/metadata/NormalSaliva.tsv Output/metadata/NormalPlaque.tsv Output/metadata/CavitySaliva.tsv Output/metadata/CavityPlaque.tsv
+.PHONY += step07
