@@ -59,7 +59,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step06
+latest: step08
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -153,37 +153,47 @@ step06: Output/Deblur/test.seq.qza Output/Deblur/whole.seq.qza
 Output/metadata:
 	mkdir -p $@
 
-Output/metadata/test.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/test.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) "C1P-001" > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/whole.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/whole.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/Normal.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/Normal.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/N* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/Cavity.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/Cavity.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/C* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/NormalSaliva.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/NormalSaliva.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/N*S* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/NormalPlaque.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/NormalPlaque.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/N*P* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/CavitySaliva.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/CavitySaliva.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/C*S* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
-Output/metadata/CavityPlaque.tsv: Python/make_metadata.py | Output/metadata
+Output/metadata/CavityPlaque.tsv: Python/make_metadata.py | Output/metadata build.log
 	$(DOCKER) python3 $(addprefix /,$<) $(sort $(shell ls -1 Data/1811AHP-0075/C*P* | cut --delimiter / --fields 3 | cut --delimiter _ --fields 1)) > $@
 	$(DOCKER) qiime tools inspect-metadata --tsv $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
 
 step07: Output/metadata/test.tsv Output/metadata/whole.tsv Output/metadata/Normal.tsv Output/metadata/Cavity.tsv Output/metadata/NormalSaliva.tsv Output/metadata/NormalPlaque.tsv Output/metadata/CavitySaliva.tsv Output/metadata/CavityPlaque.tsv
 .PHONY += step07
+
+# Step 08 (Feature Table Summary)
+Output/FeatureTable:
+	mkdir -p $@
+
+Output/FeatureTable/%.Deblur.qzv: Output/Deblur/%.table.qza Output/metadata/%.tsv | Output/FeatureTable build.log
+	$(DOCKER) qiime feature-table summarize --i-table $(addprefix /,$(word 1,$^)) --m-sample-metadata-file $(addprefix /,$(word 2,$^)) --o-visualization $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+step08: Output/FeatureTable/test.Deblur.qzv Output/FeatureTable/whole.Deblur.qzv Output/FeatureTable/Normal.Deblur.qzv Output/FeatureTable/Cavity.Deblur.qzv Output/FeatureTable/NormalSaliva.Deblur.qzv Output/FeatureTable/NormalCavity.Deblur.qzv Output/FeatureTable/CavitySaliva.Deblur.qzv Output/FeatureTable/CavityPlaque.qzv
+.PHONY += step08
