@@ -39,7 +39,7 @@ build: build.log
 .PHONY += build
 
 interactive: build.log
-	docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) --interactive $(IMAGE_NAME) /bin/bash
+	docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) --interactive $(IMAGE_NAME) /bin/bash || true
 .PHONY += interactive
 
 delete: build.log
