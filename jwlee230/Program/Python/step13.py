@@ -1,3 +1,6 @@
+"""
+step13: making T-SNE
+"""
 import argparse
 import pandas
 import sklearn.manifold
