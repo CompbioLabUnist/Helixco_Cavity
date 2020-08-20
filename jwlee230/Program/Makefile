@@ -259,3 +259,13 @@ Output/python/step12/%.pkl.gz: Python/step12.py Output/TSV/%.tsv | Output/python
 
 step12: Output/python/step12/whole.deblur.silva.pkl.gz Output/python/step12/whole.deblur.gg.pkl.gz
 .PHONY += step12
+
+# Step 13 (Make/Draw TSNE plot)
+Output/python/step13:
+	mkdir -p $@
+
+Output/python/step13/%.tsv: Python/step13.py Output/python/step12/%.pkl.gz | Output/python/step13 build.log
+	$(DOCKER) python3 $(addprefix /,$(word 1,$^)) --input $(addprefix /,$(word 2,$^)) --tsv $(addprefix /,$@) --cpu $(CPUS)
+
+step13: Output/python/step13/whole.deblur.silva.tsv Output/python/step13/whole.deblur.gg.tsv
+.PHONY += step13
