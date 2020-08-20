@@ -2,8 +2,8 @@
 DATE := $(shell date "+%y%m%d")
 RANDOM := $(shell bash -c 'echo $$RANDOM')
 IMAGE_NAME = cavity:latest
-CPUS = 15
-MEMS = 45G
+CPUS = 20
+MEMS = 100G
 PWD := $(shell pwd)
 TOOLS = 
 DOCKER = docker run --rm $(VOLUME_OPTS) $(RUN_OPTS) $(IMAGE_NAME)
@@ -226,3 +226,26 @@ Output/Taxonomy/%.gg.qza: Output/Taxonomy/gg.qza Output/Deblur/%.seq.qza | build
 
 step10: Output/Taxonomy/whole.silva.qza Output/Taxonomy/whole.gg.qza
 .PHONY += step10
+
+# Step 11 (Get TSV for Machine-Learning)
+Output/TSV:
+	mkdir -p $@
+
+Output/TSV/%.deblur.silva.tsv: Output/Deblur/%.table.qza Output/Taxonomy/%.silva.qza | Output/TSV build.log
+	$(DOCKER) qiime tools export --input-path $(addprefix /,$(word 1,$^)) --output-path /Output/TSV/$(RANDOM)
+	$(DOCKER) qiime tools export --input-path $(addprefix /,$(word 2,$^)) --output-path /Output/TSV/$(RANDOM)
+	$(DOCKER) sed --in-place "1c#OTU ID\ttaxonomy\tconfidence" /Output/TSV/$(RANDOM)/taxonomy.tsv
+	$(DOCKER) biom add-metadata --input-fp /Output/TSV/$(RANDOM)/feature-table.biom --observation-metadata-fp /Output/TSV/$(RANDOM)/taxonomy.tsv --output-fp /Output/TSV/$(RANDOM)/tmp.biom --sc-separated "taxonomy"
+	$(DOCKER) biom convert --input-fp /Output/TSV/$(RANDOM)/tmp.biom --output-fp $(addprefix /,$@) --to-tsv --process-obs-metadata "taxonomy" --tsv-metadata-formatter "sc_separated" --header-key "taxonomy"
+	$(DOCKER) rm -rfv /Output/TSV/$(RANDOM)
+
+Output/TSV/%.deblur.gg.tsv: Output/Deblur/%.table.qza Output/Taxonomy/%.gg.qza | Output/TSV build.log
+	$(DOCKER) qiime tools export --input-path $(addprefix /,$(word 1,$^)) --output-path /Output/TSV/$(RANDOM)
+	$(DOCKER) qiime tools export --input-path $(addprefix /,$(word 2,$^)) --output-path /Output/TSV/$(RANDOM)
+	$(DOCKER) sed --in-place "1c#OTU ID\ttaxonomy\tconfidence" /Output/TSV/$(RANDOM)/taxonomy.tsv
+	$(DOCKER) biom add-metadata --input-fp /Output/TSV/$(RANDOM)/feature-table.biom --observation-metadata-fp /Output/TSV/$(RANDOM)/taxonomy.tsv --output-fp /Output/TSV/$(RANDOM)/tmp.biom --sc-separated "taxonomy"
+	$(DOCKER) biom convert --input-fp /Output/TSV/$(RANDOM)/tmp.biom --output-fp $(addprefix /,$@) --to-tsv --process-obs-metadata "taxonomy" --tsv-metadata-formatter "sc_separated" --header-key "taxonomy"
+	$(DOCKER) rm -rfv /Output/TSV/$(RANDOM)
+
+step11: Output/TSV/whole.deblur.silva.tsv Output/TSV/whole.deblur.gg.tsv
+.PHONY += step11
