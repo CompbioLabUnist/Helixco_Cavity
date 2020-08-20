@@ -44,7 +44,7 @@ interactive: build.log
 
 delete: build.log
 	docker rmi $(IMAGE_NAME)
-	rm -rfv build.log log
+	rm -fv build.log
 .PHONY += delete
 
 stop:
@@ -260,7 +260,7 @@ Output/python/step12/%.pkl.gz: Python/step12.py Output/TSV/%.tsv | Output/python
 step12: Output/python/step12/whole.deblur.silva.pkl.gz Output/python/step12/whole.deblur.gg.pkl.gz
 .PHONY += step12
 
-# Step 13 (Make/Draw TSNE plot)
+# Step 13 (Make TSNE)
 Output/python/step13:
 	mkdir -p $@
 
@@ -269,3 +269,16 @@ Output/python/step13/%.tsv: Python/step13.py Output/python/step12/%.pkl.gz | Out
 
 step13: Output/python/step13/whole.deblur.silva.tsv Output/python/step13/whole.deblur.gg.tsv
 .PHONY += step13
+
+# Step 14 (Draw TSNE plot)
+Output/python/step14:
+	mkdir -p $@
+
+Output/python/step14/%.NC.png: Python/step14.py Output/python/step13/%.tsv | Output/python/step14 build.log
+	$(DOCKER) python3 $(addprefix /,$(word 1,$^)) --input $(addprefix /,$(word 2,$^)) --output $(addprefix /,$@) --NC
+
+Output/python/step14/%.SP.png: Python/step14.py Output/python/step13/%.tsv | Output/python/step14 build.log
+	$(DOCKER) python3 $(addprefix /,$(word 1,$^)) --input $(addprefix /,$(word 2,$^)) --output $(addprefix /,$@) --SP
+
+step14: Output/python/step14/whole.deblur.silva.NC.png Output/python/step14/whole.deblur.silva.SP.png Output/python/step14/whole.deblur.gg.NC.png Output/python/step14/whole.deblur.gg.SP.png
+.PHONY += step14
