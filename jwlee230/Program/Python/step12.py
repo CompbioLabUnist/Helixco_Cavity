@@ -29,7 +29,7 @@ def save_data(path: str, data: pandas.DataFrame) -> None:
         raise ValueError("Output must end with .pkl.gz")
 
     with gzip.open(path, "wb") as f:
-        f.write(pickle.dumps(data, pickle.DEFAULT_PROTOCOL))
+        pickle.dump(data, f, protocol=pickle.DEFAULT_PROTOCOL)
 
     print(path, "is good to go!!")
 
@@ -38,8 +38,11 @@ def load_data(path: str) -> pandas.DataFrame:
     """
     load_data: Uncompress & load data into DataFrame
     """
-    with open(path, "rb") as f:
-        return pickle.loads(f.read())
+    if not path.endswith(".pkl.gz"):
+        raise ValueError("Output must end with .pkl.gz")
+
+    with gzip.open(path, "rb") as f:
+        return pickle.load(f)
 
 
 if __name__ == "__main__":
@@ -51,3 +54,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     save_data(args.output, read_data(args.input))
+    print(load_data(args.output))
