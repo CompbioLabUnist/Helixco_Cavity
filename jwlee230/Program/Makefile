@@ -249,3 +249,13 @@ Output/TSV/%.deblur.gg.tsv: Output/Deblur/%.table.qza Output/Taxonomy/%.gg.qza |
 
 step11: Output/TSV/whole.deblur.silva.tsv Output/TSV/whole.deblur.gg.tsv
 .PHONY += step11
+
+# Step 12 (Read raw TSV file and make PKL file)
+Output/python/step12:
+	mkdir -p $@
+
+Output/python/step12/%.pkl.gz: Python/step12.py Output/TSV/%.tsv | Output/python/step12 build.log
+	$(DOCKER) python3 $(addprefix /,$(word 1,$^)) --input $(addprefix /,$(word 2,$^)) --output $(addprefix /,$@)
+
+step12: Output/python/step12/whole.deblur.silva.pkl.gz Output/python/step12/whole.deblur.gg.pkl.gz
+.PHONY += step12
