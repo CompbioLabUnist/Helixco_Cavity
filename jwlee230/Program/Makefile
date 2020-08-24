@@ -59,7 +59,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step10
+latest: step05
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -282,3 +282,19 @@ Output/python/step14/%.SP.png: Python/step14.py Output/python/step13/%.tsv | Out
 
 step14: Output/python/step14/whole.deblur.silva.NC.png Output/python/step14/whole.deblur.silva.SP.png Output/python/step14/whole.deblur.gg.NC.png Output/python/step14/whole.deblur.gg.SP.png
 .PHONY += step14
+
+# Step 15 (Scikit-learn Classification)
+Output/Classification:
+	mkdir -p $@
+
+Output/Classification/rep-seqs.qza: | Output/Classification
+	wget "https://data.qiime2.org/2020.6/tutorials/training-feature-classifiers/rep-seqs.qza" -O $@
+
+Output/Classification/whole.%.sklearn.qza: Output/Classification/rep-seqs.qza Output/Taxonomy/%.qza | Output/Classification build.log
+	$(DOCKER) qiime feature-classifier classify-sklearn --i-reads $(addprefix /,$(word 1,$^)) --i-classifier $(addprefix /,$(word 2,$^)) --p-n-jobs $(CPUS) --o-classification $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/Classification/%.qzv: Output/Classification/%.qza | build.log
+	$(DOCKER) qiime metadata tabulate --m-input-file $(addprefix /,$(word 1,$^)) --o-visualization $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+step15: Output/Classification/whole.gg.sklearn.qzv Output/Classification/whole.silva.sklearn.qzv
+.PHONY += step15
