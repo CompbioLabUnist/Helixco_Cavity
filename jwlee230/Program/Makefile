@@ -59,7 +59,7 @@ run: tmp.sh | log Output
 .PHONY += run
 
 # Actual
-latest: step05
+latest: step16
 .PHONY += latest
 
 # Step 01 (FastQC for given FASTQ.gz)
@@ -298,3 +298,19 @@ Output/Classification/%.qzv: Output/Classification/%.qza | build.log
 
 step15: Output/Classification/whole.gg.sklearn.qzv Output/Classification/whole.silva.sklearn.qzv
 .PHONY += step15
+
+# Step 16 (Run ANCOM)
+Output/ANCOM:
+	mkdir -p $@
+
+Output/ANCOM/%.Deblur.gg.qza: Output/Deblur/%.table.qza Output/Taxonomy/%.gg.qza | Output/ANCOM build.log
+	$(DOCKER) qiime taxa collapse --i-table $(addprefix /,$(word 1,$^)) --i-taxonomy $(addprefix /,$(word 2,$^)) --p-level 7 --o-collapsed-table $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/ANCOM/%.composition.qza: Output/ANCOM/%.qza | build.log
+	$(DOCKER) qiime composition add-pseudocount --i-table $(addprefix /,$(word 1,$^)) --o-composition-table $(addprefix /,$@) 1> $@.stdout 2> $@.stderr
+
+Output/ANCOM/%.Deblur.gg.composition.qzv: Output/ANCOM/%.Deblur.gg.composition.qza Output/metadata/whole.tsv | build.log
+	$(DOCKER) qiime composition ancom --i-table $(addprefix /,$(word 1,$^)) --m-metadata-file $(addprefix /,$(word 2,$^)) --m-metadata-column "GroupAndSite" --o-visualization $(addprefix /,$@)
+
+step16: Output/ANCOM/whole.Deblur.gg.composition.qzv
+.PHONY += step16
