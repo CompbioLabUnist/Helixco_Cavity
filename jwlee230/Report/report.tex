@@ -105,16 +105,39 @@
         \subsection{16S rRNA Analysis}
 
     \section{Methods}
-        \subsection{Docker}
-            Docker is light-weight linux containers for consistent development and deployment \cite{docker1}.
+        \subsection{t-SNE}
+            t-SNE is one of the dimension reduction algorithm which visualizes high-dimensional data by giving each data-point a location in a two-dimensional map. \cite{tsne1}
 
-        \subsection{QIIME 2}
-            QIIME 2 is a powerful, extensible, and decentralized microbiome analysis package with a focus on data and analysis transparency.
+            \begin{figure}[htbp]
+                \centering
+                \includegraphics[width=0.4 \linewidth]{figures/mnist.png}
+                \caption{Visualizations of handwritten digits from the MNIST data set \protect \cite{tsne1}}
+                \label{fig:mnist}
+            \end{figure}
 
-        \subsection{Scikit-learn}
-            Scikit-learn is a simple and efficient tools for predictive data analysis \cite{sklearn1, sklearn2}.
+        \subsection{Programming Methods}
+            \subsubsection{Docker}
+                Docker is light-weight linux containers for consistent development and deployment \cite{docker1}.
+
+            \subsubsection{QIIME 2}
+                QIIME 2 is a powerful, extensible, and decentralized microbiome analysis package with a focus on data and analysis transparency.
+
+            \subsubsection{Scikit-learn}
+                Scikit-learn is a simple and efficient tools for predictive data analysis \cite{sklearn1, sklearn2}.
 
     \section{Results}
+        \subsection{t-SNE with Every Bacterium}
+
+            \begin{figure}[htbp]
+                \centering
+                $\begin{array}{cc}
+                    \includegraphics[width=0.4 \linewidth]{figures/step14/NC.png}
+                    &
+                    \includegraphics[width=0.4 \linewidth]{figures/step14/SP.png}
+                    \\
+                    \mbox{(a) Normal vs. Cavity} & \mbox{(b) Saliva vs. Plaque}
+                \end{array}$
+            \end{figure}
 
     \section{Discussion}
 
